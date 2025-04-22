@@ -192,71 +192,12 @@ def search(query, engine='search_std'):
             ]
         }
 
-    # 确保响应中包含必要的字段
-    if 'id' not in result:
-        result['id'] = f'zhipuai_{engine}_{int(time.time())}'
-
-    if 'created' not in result:
-        result['created'] = int(time.time())
-
-    # 确保搜索意图字段存在
-    if 'search_intent' not in result or not result['search_intent']:
-        result['search_intent'] = [
-            {
-                'query': query,
-                'intent': 'SEARCH_ALL',
-                'keywords': query
-            }
-        ]
+    # 确保响应结构符合前端期望
+    print(f'智谱AI搜索响应成功，进行最小必要的处理')
 
     # 确保搜索结果字段存在
     if 'search_result' not in result:
+        print('响应中没有search_result字段，创建空列表')
         result['search_result'] = []
-
-    # 处理搜索结果，过滤掉没有有效链接的结果
-    if 'search_result' in result and isinstance(result['search_result'], list):
-        # 创建一个新的搜索结果列表，只包含有效链接的结果
-        valid_results = []
-
-        for item in result['search_result']:
-            # 确保标题字段存在
-            if 'title' not in item or not item['title']:
-                item['title'] = '智谱AI搜索结果'
-
-            # 如果链接字段不存在或为空，跳过该结果
-            if 'link' not in item or not item['link'] or item['link'] == '#':
-                print(f'跳过无效链接的结果: {item.get("title", "None")}')
-                continue
-
-            # 如果链接不以http或https开头，添加https://前缀
-            if not item['link'].startswith('http://') and not item['link'].startswith('https://'):
-                item['link'] = 'https://' + item['link']
-
-            # 从链接提取域名作为来源
-            try:
-                domain = urlparse(item['link']).netloc
-                if domain:
-                    # 如果域名包含常见网站名称，提取主域名
-                    if domain.startswith('www.'):
-                        domain = domain[4:]
-
-                    # 提取主域名部分
-                    main_parts = domain.split('.')
-                    if len(main_parts) >= 2:
-                        # 使用主域名部分，如sohu.com取sohu
-                        item['media'] = main_parts[-2].capitalize()
-                    else:
-                        item['media'] = domain
-            except:
-                # 如果无法提取域名，使用默认值
-                if 'media' not in item or not item['media']:
-                    item['media'] = '智谱AI'
-
-            # 添加到有效结果列表
-            valid_results.append(item)
-
-        # 替换原始的搜索结果列表
-        print(f'搜索结果: 原始 {len(result["search_result"])}条, 有效 {len(valid_results)}条')
-        result['search_result'] = valid_results
 
     return result
