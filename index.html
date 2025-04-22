@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能搜索</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>智能搜索</h1>
+            </div>
+        </header>
+
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="输入搜索关键词..." autofocus>
+                <button id="search-button"><i class="fas fa-search"></i></button>
+            </div>
+            <div class="search-engine-selector">
+                <span>选择搜索引擎：</span>
+                <label class="engine-label" title="智谱AI提供的基础搜索引擎，适合一般查询">
+                    <input type="radio" name="search-engine" value="search_std" checked>
+                    <i class="fas fa-robot"></i>
+                    <span>智谱基础搜索</span>
+                </label>
+
+                <label class="engine-label" title="使用 Bocha AI 搜索引擎，提供智能化的搜索结果和知识整合">
+                    <input type="radio" name="search-engine" value="bochaai">
+                    <i class="fas fa-globe"></i>
+                    <span>Bocha AI</span>
+                </label>
+                <label class="engine-label" title="使用 SearXNG 元搜索引擎，整合多个搜索引擎的结果">
+                    <input type="radio" name="search-engine" value="searxng">
+                    <i class="fas fa-search-plus"></i>
+                    <span>SearXNG</span>
+                </label>
+            </div>
+            <div class="engine-description" id="engine-description">智谱基础搜索：智谱AI提供的基础搜索引擎，适合一般查询</div>
+
+            <!-- Bocha AI 高级搜索选项 -->
+            <div class="advanced-options" id="bocha-advanced-options" style="display: none;">
+                <h4>高级搜索选项</h4>
+                <div class="option-group">
+                    <label for="bocha-freshness">时间范围：</label>
+                    <select id="bocha-freshness" name="freshness">
+                        <option value="noLimit">不限</option>
+                        <option value="oneDay">一天内</option>
+                        <option value="oneWeek">一周内</option>
+                        <option value="oneMonth">一个月内</option>
+                        <option value="oneYear">一年内</option>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label for="bocha-count">结果数量：</label>
+                    <select id="bocha-count" name="count">
+                        <option value="10">10条</option>
+                        <option value="20">20条</option>
+                        <option value="30">30条</option>
+                        <option value="50">50条</option>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label for="bocha-summary">显示摘要：</label>
+                    <input type="checkbox" id="bocha-summary" name="summary" value="true">
+                </div>
+            </div>
+
+            <!-- SearXNG 高级搜索选项 -->
+            <div class="advanced-options" id="searxng-advanced-options" style="display: none;">
+                <h4>高级搜索选项</h4>
+                <div class="option-group">
+                    <label for="searxng-engines">搜索引擎：</label>
+                    <select id="searxng-engines" name="engines">
+                        <option value="bing,baidu,360search,quark,sogou">所有中文引擎</option>
+                        <option value="bing">必应</option>
+                        <option value="baidu">百度</option>
+                        <option value="360search">360搜索</option>
+                        <option value="quark">夸克</option>
+                        <option value="sogou">搜狗</option>
+                        <option value="google,duckduckgo,brave">所有英文引擎</option>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label for="searxng-language">语言：</label>
+                    <select id="searxng-language" name="language">
+                        <option value="auto">自动检测</option>
+                        <option value="zh-CN">中文(简体)</option>
+                        <option value="en-US">英文(美国)</option>
+                        <option value="ja-JP">日文(日本)</option>
+                        <option value="ko-KR">韩文(韩国)</option>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label for="searxng-time-range">时间范围：</label>
+                    <select id="searxng-time-range" name="time_range">
+                        <option value="">不限</option>
+                        <option value="day">一天内</option>
+                        <option value="week">一周内</option>
+                        <option value="month">一个月内</option>
+                        <option value="year">一年内</option>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label for="searxng-safesearch">安全搜索：</label>
+                    <select id="searxng-safesearch" name="safesearch">
+                        <option value="1">中等</option>
+                        <option value="0">关闭</option>
+                        <option value="2">严格</option>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label for="searxng-count">结果数量：</label>
+                    <select id="searxng-count" name="count">
+                        <option value="10">10条</option>
+                        <option value="20">20条</option>
+                        <option value="30">30条</option>
+                        <option value="50">50条</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="search-suggestions" id="search-suggestions"></div>
+        </div>
+
+        <div class="loading-indicator" id="loading-indicator">
+            <div class="spinner"></div>
+            <p>正在搜索中，请稍候...</p>
+        </div>
+
+        <main>
+            <div class="search-info" id="search-info"></div>
+
+            <div class="search-results" id="search-results">
+                <!-- 搜索结果将在这里动态加载 -->
+                <div class="welcome-message">
+                    <h2>欢迎使用智能搜索</h2>
+                    <p>在上方搜索框中输入关键词，探索互联网世界</p>
+                    <div class="popular-searches">
+                        <h3>热门搜索</h3>
+                        <div class="popular-search-items">
+                            <a href="#" class="popular-search-item" data-query="人工智能最新发展">人工智能最新发展</a>
+                            <a href="#" class="popular-search-item" data-query="元宇宙技术应用">元宇宙技术应用</a>
+                            <a href="#" class="popular-search-item" data-query="区块链金融创新">区块链金融创新</a>
+                            <a href="#" class="popular-search-item" data-query="量子计算突破">量子计算突破</a>
+                            <a href="#" class="popular-search-item" data-query="可持续发展技术">可持续发展技术</a>
+                            <a href="#" class="popular-search-item" data-query="智能家居新品">智能家居新品</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="copyright">
+                &copy; 2025 智能搜索
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

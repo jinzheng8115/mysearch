@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  search-app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - ZHIPUAI_API_KEY=${ZHIPUAI_API_KEY}
+      - BOCHAAI_API_KEY=${BOCHAAI_API_KEY}
+      - SEARXNG_URL=${SEARXNG_URL}
+    volumes:
+      - ./.env:/app/.env
+    restart: unless-stopped
