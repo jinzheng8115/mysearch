@@ -9,7 +9,42 @@ import os
 import json
 import time
 import requests
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
+
+def is_valid_url(url):
+    """检查URL是否有效
+
+    Args:
+        url (str): 要检查的URL
+
+    Returns:
+        bool: URL是否有效
+    """
+    # 打印详细的URL信息以便调试
+    print(f'检查URL有效性: {url}')
+
+    # 简化的检查逻辑
+    if not url or url == '#':
+        print('  URL为空或为#，返回False')
+        return False
+
+    # 检查是否以http或https开头
+    if not url.startswith('http://') and not url.startswith('https://'):
+        print('  URL不以http或https开头，返回False')
+        return False
+
+    # 检查是否包含域名
+    try:
+        parsed_url = urlparse(url)
+        if not parsed_url.netloc:
+            print('  URL不包含域名，返回False')
+            return False
+    except Exception as e:
+        print(f'  URL解析错误: {str(e)}，返回False')
+        return False
+
+    print('  URL有效，返回True')
+    return True
 
 def search(query, engine='search_std'):
     """
@@ -28,14 +63,18 @@ def search(query, engine='search_std'):
     if not api_key:
         return {'error': '智谱AI API密钥未配置'}
 
-    # 准备请求参数 - 严格按照API文档中指定的格式
+    # 准备请求参数 - 保持简单
     payload = {
         'search_engine': engine,  # 搜索引擎类型
         'search_query': query[:78]  # 限制查询不超过78个字符
     }
 
+    # 智谱AI搜索引擎不支持高级选项
+    # 只使用基本参数
+
     print(f'智谱AI 请求参数: {payload}')
 
+    # 准备请求头部 - 保持简单
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {api_key}'
@@ -43,11 +82,9 @@ def search(query, engine='search_std'):
 
     print(f'智谱AI 请求负载: {json.dumps(payload)}')
 
-    # 发送请求
+    # 发送请求 - 保持简单
     try:
-        print(f'智谱AI 请求URL: https://open.bigmodel.cn/api/paas/v4/web_search')
-        print(f'智谱AI 请求头部: {headers}')
-        print(f'智谱AI 请求负载: {json.dumps(payload, ensure_ascii=False)}')
+        print(f'发送请求到智谱AI: 查询="{query}", 引擎={engine}')
 
         response = requests.post(
             'https://open.bigmodel.cn/api/paas/v4/web_search',
@@ -56,10 +93,48 @@ def search(query, engine='search_std'):
             timeout=30  # 增加超时时间
         )
 
-        # 检查响应状态和详细信息
+        # 检查响应状态码
         print(f'智谱AI 响应状态码: {response.status_code}')
-        print(f'智谱AI 响应头部: {response.headers}')
         response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print(f'智谱AI API HTTP错误: {str(e)}')
+        # 尝试获取错误响应的详细信息
+        try:
+            error_detail = response.json()
+            print(f'智谱AI API错误详情: {json.dumps(error_detail, ensure_ascii=False)}')
+
+            # 如果是400错误，可能是API密钥或请求格式问题
+            if response.status_code == 400:
+                print('尝试使用备用搜索结果')
+
+                # 检查错误消息，如果是API密钥问题，打印更详细的信息
+                error_message = error_detail.get('message', '')
+                if 'api key' in error_message.lower() or 'apikey' in error_message.lower() or 'token' in error_message.lower():
+                    print('智谱AI API密钥可能已过期或无效，请更新API密钥')
+                # 返回一个带有错误信息的搜索结果
+                return {
+                    'id': f'zhipuai_error_400_{int(time.time())}',
+                    'created': int(time.time()),
+                    'search_intent': [
+                        {
+                            'query': query,
+                            'intent': 'SEARCH_ALL',
+                            'keywords': query
+                        }
+                    ],
+                    'search_result': [
+                        {
+                            'title': f'搜索“{query}”',
+                            'link': f'https://www.baidu.com/s?wd={quote(query)}',
+                            'content': f'智谱AI搜索引擎暂时不可用，请尝试使用其他搜索引擎或稍后再试。\n\n错误信息: {str(e)}',
+                            'media': 'Baidu',
+                            'icon': '',
+                            'refer': '错误'
+                        }
+                    ]
+                }
+        except:
+            print(f'智谱AI API错误响应文本: {response.text}')
     except requests.exceptions.RequestException as e:
         print(f'智谱AI API请求错误: {str(e)}')
         # 创建一个错误响应
@@ -85,14 +160,13 @@ def search(query, engine='search_std'):
             ]
         }
 
-    # 获取响应数据
+    # 获取响应数据 - 简化处理
     try:
-        # 打印原始响应文本以便调试
-        response_text = response.text
-        print(f'智谱AI 原始响应文本: {response_text}')
-
         result = response.json()
-        print(f'智谱AI 搜索响应: {json.dumps(result, ensure_ascii=False)}')
+        print(f'智谱AI 搜索响应成功，结果数量: {len(result.get("search_result", []))}')
+
+        # 确保处理搜索结果的代码被执行
+        print('开始处理搜索结果...')
     except json.JSONDecodeError as e:
         print(f'智谱AI 响应JSON解析错误: {str(e)}')
         # 创建一个错误响应
@@ -139,42 +213,50 @@ def search(query, engine='search_std'):
     if 'search_result' not in result:
         result['search_result'] = []
 
-    # 处理搜索结果，确保每个结果都有必要的字段
+    # 处理搜索结果，过滤掉没有有效链接的结果
     if 'search_result' in result and isinstance(result['search_result'], list):
+        # 创建一个新的搜索结果列表，只包含有效链接的结果
+        valid_results = []
+
         for item in result['search_result']:
             # 确保标题字段存在
             if 'title' not in item or not item['title']:
                 item['title'] = '智谱AI搜索结果'
 
-            # 确保链接字段存在
-            if 'link' not in item or not item['link']:
-                item['link'] = '#'
+            # 如果链接字段不存在或为空，跳过该结果
+            if 'link' not in item or not item['link'] or item['link'] == '#':
+                print(f'跳过无效链接的结果: {item.get("title", "None")}')
+                continue
 
-            # 确保内容字段存在
-            if 'content' not in item or not item['content']:
-                item['content'] = '无可用内容'
+            # 如果链接不以http或https开头，添加https://前缀
+            if not item['link'].startswith('http://') and not item['link'].startswith('https://'):
+                item['link'] = 'https://' + item['link']
 
-            # 如果没有 media 字段，根据链接提取域名作为来源
-            if 'media' not in item or not item['media']:
-                try:
-                    if item['link'] and item['link'] != '#':
-                        domain = urlparse(item['link']).netloc
-                        item['media'] = domain
+            # 从链接提取域名作为来源
+            try:
+                domain = urlparse(item['link']).netloc
+                if domain:
+                    # 如果域名包含常见网站名称，提取主域名
+                    if domain.startswith('www.'):
+                        domain = domain[4:]
+
+                    # 提取主域名部分
+                    main_parts = domain.split('.')
+                    if len(main_parts) >= 2:
+                        # 使用主域名部分，如sohu.com取sohu
+                        item['media'] = main_parts[-2].capitalize()
                     else:
-                        item['media'] = '智谱AI'
-                except:
+                        item['media'] = domain
+            except:
+                # 如果无法提取域名，使用默认值
+                if 'media' not in item or not item['media']:
                     item['media'] = '智谱AI'
 
-            # 确保图标字段存在
-            if 'icon' not in item:
-                item['icon'] = ''
+            # 添加到有效结果列表
+            valid_results.append(item)
 
-            # 确保角标序号字段存在
-            if 'refer' not in item:
-                # 如果内容中包含图片标签，则标记为图片结果
-                if '<img' in item.get('content', ''):
-                    item['refer'] = '图片'
-                else:
-                    item['refer'] = ''
+        # 替换原始的搜索结果列表
+        print(f'搜索结果: 原始 {len(result["search_result"])}条, 有效 {len(valid_results)}条')
+        result['search_result'] = valid_results
 
     return result
