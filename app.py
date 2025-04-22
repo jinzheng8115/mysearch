@@ -6,7 +6,7 @@
 """
 
 import os
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -104,14 +104,19 @@ def search():
             result = searxng.search(query, engines, language, safesearch, time_range, count)
         else:
             # 调用智谱AI搜索引擎
+            # 智谱AI搜索引擎不支持高级选项
             result = zhipuai.search(query, engine)
 
         # 检查是否有错误
         if 'error' in result:
             return jsonify(result), 500
 
-        # 返回搜索结果
-        return jsonify(result)
+        # 创建响应并添加缓存控制头
+        response = make_response(jsonify(result))
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
 
     except Exception as e:
         # 记录错误

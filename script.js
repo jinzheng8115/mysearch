@@ -9,6 +9,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchSuggestions = document.getElementById('search-suggestions');
     const popularSearchItems = document.querySelectorAll('.popular-search-item');
 
+    // 获取高级选项元素
+    const zhipuaiAdvancedOptions = document.getElementById('zhipuai-advanced-options');
+    const bochaAdvancedOptions = document.getElementById('bocha-advanced-options');
+    const searxngAdvancedOptions = document.getElementById('searxng-advanced-options');
+
+    // 初始化高级选项显示状态
+    // 首先隐藏所有高级选项
+    zhipuaiAdvancedOptions.style.display = 'none';
+    bochaAdvancedOptions.style.display = 'none';
+    searxngAdvancedOptions.style.display = 'none';
+
+    // 获取当前选中的搜索引擎
+    const selectedEngine = document.querySelector('input[name="search-engine"]:checked').value;
+    console.log('页面加载时选中的搜索引擎:', selectedEngine);
+
+    // 根据选中的引擎显示相应的高级选项
+    if (selectedEngine === 'search_std') {
+        zhipuaiAdvancedOptions.style.display = 'block';
+    } else if (selectedEngine === 'bochaai') {
+        bochaAdvancedOptions.style.display = 'block';
+    } else if (selectedEngine === 'searxng') {
+        searxngAdvancedOptions.style.display = 'block';
+    }
+
     // 热门搜索点击事件
     popularSearchItems.forEach(item => {
         item.addEventListener('click', function(e) {
@@ -42,16 +66,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const engineValue = this.value;
             engineDescriptionElement.textContent = engineDescriptions[engineValue] || '';
 
-            // 显示或隐藏高级选项
-            const bochaAdvancedOptions = document.getElementById('bocha-advanced-options');
-            const searxngAdvancedOptions = document.getElementById('searxng-advanced-options');
-
             // 隐藏所有高级选项
+            zhipuaiAdvancedOptions.style.display = 'none';
             bochaAdvancedOptions.style.display = 'none';
             searxngAdvancedOptions.style.display = 'none';
 
             // 根据选择的引擎显示相应的高级选项
-            if (engineValue === 'bochaai') {
+            if (engineValue === 'search_std') {
+                zhipuaiAdvancedOptions.style.display = 'block';
+            } else if (engineValue === 'bochaai') {
                 bochaAdvancedOptions.style.display = 'block';
             } else if (engineValue === 'searxng') {
                 searxngAdvancedOptions.style.display = 'block';
@@ -121,10 +144,14 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('选中的搜索引擎:', selectedEngine);
 
         // 构建API请求URL
-        let apiUrl = `/api/search?query=${encodeURIComponent(query)}&engine=${selectedEngine}`;
+        // 添加时间戳参数，防止缓存
+        let apiUrl = `/api/search?query=${encodeURIComponent(query)}&engine=${selectedEngine}&_t=${Date.now()}`;
 
         // 根据不同的搜索引擎添加高级选项
-        if (selectedEngine === 'bochaai') {
+        if (selectedEngine === 'search_std') {
+            // 智谱AI搜索引擎不支持高级选项
+            console.log('智谱AI搜索引擎不支持高级选项');
+        } else if (selectedEngine === 'bochaai') {
             // 获取时间范围
             const freshness = document.getElementById('bocha-freshness').value;
             if (freshness !== 'noLimit') {
